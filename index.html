@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TagITBack - QR Lost & Found Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <script type="text/babel">
+        const { useState } = React;
+
+        // Icon Components
+        const QrCodeIcon = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="3" width="7" height="7"/>
+                <rect x="14" y="3" width="7" height="7"/>
+                <rect x="14" y="14" width="7" height="7"/>
+                <rect x="3" y="14" width="7" height="7"/>
+            </svg>
+        );
+
+        const MapPinIcon = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+            </svg>
+        );
+
+        const MessageIcon = () => (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+        );
+
+        const CheckIcon = ({ size = 24 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="20 6 9 17 4 12"/>
+            </svg>
+        );
+
+        const ClockIcon = () => (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+            </svg>
+        );
+
+        const PackageIcon = () => (
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M16.5 9.4l-9-5.19M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                <line x1="12" y1="22.08" x2="12" y2="12"/>
+            </svg>
+        );
+
+        // Main App Component
+        const App = () => {
+            const [currentPage, setCurrentPage] = useState('landing');
+            const [qrGenerated, setQrGenerated] = useState(false);
+            const [formData, setFormData] = useState({
+                itemName: '',
+                category: 'Wallet'
+            });
+
+            const [taggedItems] = useState([
+                { id: 1, name: 'Black Wallet', category: 'Wallet', status: 'Safe', lastScanned: '2 days ago', location: 'Home' },
+                { id: 2, name: 'Office Keys', category: 'Keys', status: 'Found', lastScanned: '30 mins ago', location: 'Central Park, NY' },
+                { id: 3, name: 'Blue Backpack', category: 'Bag', status: 'Lost', lastScanned: '5 hours ago', location: 'Downtown Coffee Shop' }
+            ]);
+
+            const [scanHistory] = useState([
+                { date: 'Dec 30, 2025', time: '2:30 PM', location: 'Central Park, NY', item: 'Office Keys' },
+                { date: 'Dec 28, 2025', time: '11:15 AM', location: 'Home', item: 'Black Wallet' },
+                { date: 'Dec 27, 2025', time: '4:45 PM', location: 'Downtown Coffee Shop', item: 'Blue Backpack' }
+            ]);
+
+            const handleGenerateQR = () => {
+                if (formData.itemName) {
+                    setQrGenerated(true);
+                }
+            };
+
+            // Navigation Component
+            const Navigation = ({ showBack, backTo, showDashboard }) => (
+                <nav className="bg-white shadow-sm">
+                    <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+                        <div className="flex items-center gap-2 cursor-pointer" onClick={() => setCurrentPage('landing')}>
+                            <div className="text-teal-600"><QrCodeIcon /></div>
+                            <span className="text-2xl font-bold text-gray-800">TagITBack</span>
+                        </div>
+                        <div className="flex gap-4">
+                            {showDashboard && (
+                                <button 
+                                    onClick={() => setCurrentPage('dashboard')}
+                                    className="text-teal-600 font-medium hover:text-teal-700"
+                                >
+                                    Dashboard
+                                </button>
+                            )}
+                            {showBack && (
+                                <button 
+                                    onClick={() => setCurrentPage(backTo)}
+                                    className="text-gray-600 hover:text-gray-800"
+                                >
+                                    ← Back
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </nav>
+            );
+
+            // Landing Page
+            const LandingPage = () => (
+                <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+                    <Navigation showDashboard={true} />
+
+                    <div className="max-w-6xl mx-auto px-6 py-20 text-center">
+                        <h1 className="text-5xl font-bold text-gray-900 mb-4">
+                            Tag it. Find it. Get it back.
+                        </h1>
+                        <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
+                            Never lose your valuables again. Generate personalized QR codes for your belongings and let helpful finders return them safely—without compromising your privacy.
+                        </p>
+
+                        <div className="flex gap-4 justify-center mb-20 flex-wrap">
+                            <button 
+                                onClick={() => setCurrentPage('generate')}
+                                className="bg-teal-600 text-white px-8 py-4 rounded-full font-semibold text-lg hover:bg-teal-700 shadow-lg transition"
+                            >
+                                Generate QR Tag
+                            </button>
+                            <button className="bg-white text-teal-600 px-8 py-4 rounded-full font-semibold text-lg hover:bg-gray-50 shadow-lg border-2 border-teal-600 transition">
+                                How It Works
+                            </button>
+                        </div>
+
+                        <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+                            <div className="bg-white p-8 rounded-2xl shadow-md">
+                                <div className="bg-teal-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <div className="text-teal-600"><QrCodeIcon size={32} /></div>
+                                </div>
+                                <h3 className="text-xl font-semibold mb-2">1. Generate QR</h3>
+                                <p className="text-gray-600">Create a unique QR code for your item in seconds</p>
+                            </div>
+
+                            <div className="bg-white p-8 rounded-2xl shadow-md">
+                                <div className="bg-teal-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <div className="text-teal-600"><PackageIcon /></div>
+                                </div>
+                                <h3 className="text-xl font-semibold mb-2">2. Attach to Item</h3>
+                                <p className="text-gray-600">Print and stick the QR tag on your belongings</p>
+                            </div>
+
+                            <div className="bg-white p-8 rounded-2xl shadow-md">
+                                <div className="bg-teal-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <div className="text-teal-600"><CheckIcon size={32} /></div>
+                                </div>
+                                <h3 className="text-xl font-semibold mb-2">3. Scan & Return</h3>
+                                <p className="text-gray-600">Finder scans the code and helps return your item</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // Generate QR Page
+            const GenerateQRPage = () => (
+                <div className="min-h-screen bg-gray-50">
+                    <Navigation showBack={true} backTo="landing" />
+
+                    <div className="max-w-2xl mx-auto px-6 py-16">
+                        <h1 className="text-4xl font-bold text-gray-900 mb-2 text-center">Generate Your QR Tag</h1>
+                        <p className="text-gray-600 mb-12 text-center">Create a unique QR code for your item</p>
+
+                        <div className="bg-white rounded-2xl shadow-lg p-8">
+                            <div className="mb-6">
+                                <label className="block text-gray-700 font-semibold mb-2">Item Name</label>
+                                <input 
+                                    type="text"
+                                    value={formData.itemName}
+                                    onChange={(e) => setFormData({...formData, itemName: e.target.value})}
+                                    placeholder="e.g., Black Wallet"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                />
+                            </div>
+
+                            <div className="mb-8">
+                                <label className="block text-gray-700 font-semibold mb-2">Item Category</label>
+                                <select 
+                                    value={formData.category}
+                                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
+                                >
+                                    <option>Wallet</option>
+                                    <option>Bag</option>
+                                    <option>Keys</option>
+                                    <option>Bottle</option>
+                                    <option>Other</option>
+                                </select>
+                            </div>
+
+                            <button 
+                                onClick={handleGenerateQR}
+                                className="w-full bg-teal-600 text-white py-4 rounded-lg font-semibold text-lg hover:bg-teal-700 transition"
+                            >
+                                Generate My QR
+                            </button>
+
+                            {qrGenerated && (
+                                <div className="mt-8 border-t pt-8">
+                                    <h3 className="text-xl font-semibold mb-4 text-center">Your QR Code</h3>
+                                    <div className="bg-gray-50 p-8 rounded-xl flex flex-col items-center">
+                                        <div className="bg-white p-6 rounded-lg shadow-md mb-4">
+                                            <div className="w-48 h-48 bg-gray-200 flex items-center justify-center">
+                                                <QrCodeIcon size={160} />
+                                            </div>
+                                        </div>
+                                        <p className="text-gray-600 mb-4 font-medium">{formData.itemName}</p>
+                                        <button className="bg-teal-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-teal-700 transition">
+                                            Download QR Code
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // Finder Page
+            const FinderPage = () => (
+                <div className="min-h-screen bg-gradient-to-b from-teal-50 to-white flex items-center justify-center px-6">
+                    <div className="max-w-lg w-full">
+                        <div className="text-center mb-8">
+                            <div className="bg-teal-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <div className="text-teal-600"><CheckIcon size={48} /></div>
+                            </div>
+                            <h1 className="text-4xl font-bold text-gray-900 mb-2">You've found a lost item!</h1>
+                            <p className="text-xl text-gray-600">Thank you for helping return it 🙌</p>
+                        </div>
+
+                        <div className="bg-white rounded-2xl shadow-xl p-8">
+                            <div className="bg-gray-50 rounded-xl p-6 mb-6 text-center">
+                                <p className="text-gray-500 text-sm mb-1">Item Found</p>
+                                <p className="text-2xl font-bold text-gray-900">Black Wallet</p>
+                            </div>
+
+                            <button className="w-full bg-teal-600 text-white py-4 rounded-lg font-semibold text-lg hover:bg-teal-700 transition mb-4 flex items-center justify-center gap-2">
+                                <MapPinIcon />
+                                Share My Current Location
+                            </button>
+
+                            <button className="w-full bg-white text-teal-600 py-4 rounded-lg font-semibold text-lg hover:bg-gray-50 transition border-2 border-teal-600 flex items-center justify-center gap-2">
+                                <MessageIcon />
+                                Send Anonymous Message to Owner
+                            </button>
+
+                            <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                                <p className="text-sm text-blue-800">
+                                    🔒 Your identity and contact details remain private
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // Dashboard Page
+            const DashboardPage = () => (
+                <div className="min-h-screen bg-gray-50">
+                    <nav className="bg-white shadow-sm">
+                        <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+                            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setCurrentPage('landing')}>
+                                <div className="text-teal-600"><QrCodeIcon /></div>
+                                <span className="text-2xl font-bold text-gray-800">TagITBack</span>
+                            </div>
+                            <div className="flex gap-4">
+                                <button 
+                                    onClick={() => setCurrentPage('history')}
+                                    className="text-gray-600 hover:text-gray-800"
+                                >
+                                    Scan History
+                                </button>
+                                <button 
+                                    onClick={() => setCurrentPage('landing')}
+                                    className="text-gray-600 hover:text-gray-800"
+                                >
+                                    Home
+                                </button>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <div className="max-w-6xl mx-auto px-6 py-16">
+                        <div className="flex justify-between items-center mb-8 flex-wrap gap-4">
+                            <h1 className="text-4xl font-bold text-gray-900">My Tagged Items</h1>
+                            <button 
+                                onClick={() => { setCurrentPage('generate'); setQrGenerated(false); }}
+                                className="bg-teal-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-teal-700 transition"
+                            >
+                                + Add New Item
+                            </button>
+                        </div>
+
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {taggedItems.map(item => (
+                                <div key={item.id} className="bg-white rounded-xl shadow-md p-6">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <h3 className="text-xl font-bold text-gray-900">{item.name}</h3>
+                                        <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                                            item.status === 'Safe' ? 'bg-green-100 text-green-700' :
+                                            item.status === 'Found' ? 'bg-blue-100 text-blue-700' :
+                                            'bg-orange-100 text-orange-700'
+                                        }`}>
+                                            {item.status}
+                                        </span>
+                                    </div>
+
+                                    <div className="space-y-2 mb-4">
+                                        <div className="flex items-center gap-2 text-gray-600">
+                                            <ClockIcon />
+                                            <span className="text-sm">Last scanned {item.lastScanned}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2 text-gray-600">
+                                            <MapPinIcon />
+                                            <span className="text-sm">{item.location}</span>
+                                        </div>
+                                    </div>
+
+                                    {item.status === 'Found' && (
+                                        <button className="w-full bg-teal-600 text-white py-2 rounded-lg font-semibold hover:bg-teal-700 transition">
+                                            Mark as Returned
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // History Page
+            const HistoryPage = () => (
+                <div className="min-h-screen bg-gray-50">
+                    <Navigation showBack={true} backTo="dashboard" />
+
+                    <div className="max-w-4xl mx-auto px-6 py-16">
+                        <h1 className="text-4xl font-bold text-gray-900 mb-2">Scan History</h1>
+                        <p className="text-gray-600 mb-12">Track all scans of your tagged items</p>
+
+                        <div className="bg-white rounded-xl shadow-md overflow-hidden">
+                            {scanHistory.map((scan, index) => (
+                                <div 
+                                    key={index}
+                                    className={`p-6 flex items-center gap-6 ${
+                                        index !== scanHistory.length - 1 ? 'border-b border-gray-200' : ''
+                                    }`}
+                                >
+                                    <div className="bg-teal-100 w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <div className="text-teal-600"><QrCodeIcon /></div>
+                                    </div>
+
+                                    <div className="flex-1">
+                                        <h3 className="font-semibold text-gray-900 mb-1">{scan.item}</h3>
+                                        <div className="flex items-center gap-4 text-sm text-gray-600 flex-wrap">
+                                            <span className="flex items-center gap-1">
+                                                <ClockIcon />
+                                                {scan.date} at {scan.time}
+                                            </span>
+                                            <span className="flex items-center gap-1">
+                                                <MapPinIcon />
+                                                {scan.location}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // Render current page
+            return (
+                <div>
+                    {currentPage === 'landing' && <LandingPage />}
+                    {currentPage === 'generate' && <GenerateQRPage />}
+                    {currentPage === 'finder' && <FinderPage />}
+                    {currentPage === 'dashboard' && <DashboardPage />}
+                    {currentPage === 'history' && <HistoryPage />}
+
+                    {/* Demo Navigation */}
+                    <div className="fixed bottom-4 right-4 bg-white rounded-lg shadow-xl p-4 border border-gray-200" style={{zIndex: 9999}}>
+                        <p className="text-xs font-semibold text-gray-700 mb-2">Demo Navigation</p>
+                        <div className="flex flex-col gap-2">
+                            <button 
+                                onClick={() => { setCurrentPage('landing'); setQrGenerated(false); }}
+                                className="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded transition"
+                            >
+                                Landing
+                            </button>
+                            <button 
+                                onClick={() => { setCurrentPage('generate'); setQrGenerated(false); }}
+                                className="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded transition"
+                            >
+                                Generate QR
+                            </button>
+                            <button 
+                                onClick={() => setCurrentPage('finder')}
+                                className="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded transition"
+                            >
+                                Finder Page
+                            </button>
+                            <button 
+                                onClick={() => setCurrentPage('dashboard')}
+                                className="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded transition"
+                            >
+                                Dashboard
+                            </button>
+                            <button 
+                                onClick={() => setCurrentPage('history')}
+                                className="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded transition"
+                            >
+                                History
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('app'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
